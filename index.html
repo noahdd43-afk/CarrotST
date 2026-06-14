@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarrotST</title>
+<style>
+  :root{
+    --orange: #ff7a18;
+    --orange-light: #ffb347;
+    --black: #0a0a0a;
+    --panel: #161412;
+    --panel-light: #211d19;
+    --text: #f5ede4;
+    --text-dim: #b8a99c;
+    --accent: #ff9143;
+    --danger: #ff5b5b;
+    --font-display: 'Cooper', Georgia, serif;
+    --font-body: 'Trebuchet MS', sans-serif;
+  }
+
+  *{ box-sizing: border-box; margin:0; padding:0; }
+
+  html,body{
+    height:100%;
+    font-family: var(--font-body);
+    color: var(--text);
+  }
+
+  body{
+    min-height:100vh;
+    background: linear-gradient(180deg, var(--orange) 0%, #c9590f 18%, #4a2410 42%, var(--black) 75%);
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  /* ===== Falling carrots background ===== */
+  #carrotField{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:0;
+    overflow:hidden;
+  }
+  .carrot{
+    position:absolute;
+    top:-10vh;
+    font-size: 28px;
+    opacity:0.5;
+    animation: fall linear infinite;
+    filter: drop-shadow(0 0 4px rgba(0,0,0,0.4));
+  }
+  @keyframes fall{
+    0%{ transform: translateY(-10vh) rotate(0deg); }
+    100%{ transform: translateY(110vh) rotate(360deg); }
+  }
+
+  /* ===== Layout shells ===== */
+  .app{
+    position:relative;
+    z-index:1;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .hidden{ display:none !important; }
+
+  /* ===== Top bar ===== */
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding: 14px 22px;
+    background: rgba(10,10,10,0.35);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .brand{
+    font-family: var(--font-display);
+    font-weight:900;
+    font-size: 1.6rem;
+    letter-spacing: 1px;
+    color: var(--text);
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .brand .dot{
+    width:10px;height:10px;border-radius:50%;
+    background: var(--orange-light);
+    box-shadow: 0 0 10px var(--orange-light);
+  }
+  .topbar-right{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .lang-toggle{
+    display:flex;
+    border:1px solid rgba(255,255,255,0.15);
+    border-radius:20px;
+    overflow:hidden;
+    font-size:0.75rem;
+  }
+  .lang-toggle button{
+    padding:6px 12px;
+    border:none;
+    background:transparent;
+    color: var(--text-dim);
+    cursor:pointer;
+    font-weight:bold;
+    transition: all 0.2s;
+  }
+  .lang-toggle button.active{
+    background: var(--orange);
+    color:#1a0e00;
+  }
+
+  .user-chip{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    cursor:pointer;
+    padding:4px 10px 4px 4px;
+    border-radius:20px;
+    background: rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.08);
+  }
+  .user-chip img, .pfp-circle{
+    width:30px;height:30px;border-radius:50%;
+    object-fit:cover;
+    background: var(--panel-light);
+  }
+  .pfp-circle{
+    display:flex;align-items:center;justify-content:center;
+    font-weight:bold;
+    font-size:0.9rem;
+    color:var(--text);
+  }
+  .chip-name{ font-size:0.85rem; font-weight:bold; }
+
+  .logout-btn{
+    background:transparent;
+    border:1px solid rgba(255,90,90,0.4);
+    color: var(--danger);
+    border-radius:16px;
+    padding:6px 12px;
+    font-size:0.75rem;
+    cursor:pointer;
+  }
+
+  /* ===== Verified gradient name ===== */
+  .verified-name{
+    font-weight:900;
+    background: linear-gradient(90deg, var(--orange) 0%, #ffffff 50%, var(--orange) 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: shine 3s linear infinite;
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+  }
+  @keyframes shine{
+    0%{ background-position: 0% center; }
+    100%{ background-position: 200% center; }
+  }
+  .verified-badge{
+    width:16px;height:16px;
+    flex-shrink:0;
+    display:inline-block;
+  }
+  .verified-badge svg{ width:100%; height:100%; display:block; }
+
+  /* ===== Containers / cards ===== */
+  .container{
+    max-width: 720px;
+    margin: 0 auto;
+    width:100%;
+    padding: 24px 16px 80px;
+    flex:1;
+  }
+
+  .card{
+    background: rgba(20,16,12,0.7);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 18px;
+    backdrop-filter: blur(4px);
+  }
+
+  /* ===== Setup screens ===== */
+  .setup-wrap{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 24px;
+  }
+  .setup-card{
+    width:100%;
+    max-width: 420px;
+    background: rgba(15,12,9,0.85);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 18px;
+    padding: 32px 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+  }
+  .setup-card h1{
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    margin-bottom: 6px;
+    text-align:center;
+  }
+  .setup-card .subtitle{
+    color: var(--text-dim);
+    font-size:0.85rem;
+    text-align:center;
+    margin-bottom:22px;
+  }
+
+  label{
+    display:block;
+    font-size:0.78rem;
+    color: var(--text-dim);
+    margin-bottom:6px;
+    margin-top:14px;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+  }
+  input[type="text"], input[type="password"], textarea{
+    width:100%;
+    padding: 11px 13px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.35);
+    color: var(--text);
+    font-size:0.95rem;
+    font-family: var(--font-body);
+    outline:none;
+    transition: border 0.2s;
+  }
+  input:focus, textarea:focus{
+    border-color: var(--orange);
+  }
+  textarea{ resize:vertical; min-height:70px; }
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding: 12px 20px;
+    border-radius: 12px;
+    border:none;
+    background: linear-gradient(135deg, var(--orange) 0%, var(--accent) 100%);
+    color: #1a0e00;
+    font-weight:800;
+    font-size:0.95rem;
+    cursor:pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    width:100%;
+    margin-top:20px;
+  }
+  .btn:hover{ transform: translateY(-1px); box-shadow: 0 6px 18px rgba(255,122,24,0.35); }
+  .btn:active{ transform: translateY(0); }
+  .btn:disabled{ opacity:0.5; cursor:not-allowed; transform:none; box-shadow:none; }
+
+  .btn-secondary{
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--text);
+  }
+
+  .btn-ghost{
+    background:transparent;
+    border:none;
+    color: var(--orange-light);
+    font-size:0.8rem;
+    cursor:pointer;
+    text-decoration:underline;
+    width:auto;
+    margin-top:14px;
+    padding:0;
+  }
+
+  .error-msg{
+    color: var(--danger);
+    font-size:0.8rem;
+    margin-top:10px;
+    text-align:center;
+    min-height: 1em;
+  }
+
+  /* language choice cards */
+  .lang-choice{
+    display:flex;
+    gap:12px;
+    margin-top:20px;
+  }
+  .lang-card{
+    flex:1;
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 18px 10px;
+    text-align:center;
+    cursor:pointer;
+    background: rgba(255,255,255,0.03);
+    transition: all 0.2s;
+  }
+  .lang-card.selected{
+    border-color: var(--orange);
+    background: rgba(255,122,24,0.12);
+  }
+  .lang-card .flag{ font-size:1.8rem; display:block; margin-bottom:6px; }
+
+  /* pfp picker */
+  .pfp-picker{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-top:14px;
+  }
+  .pfp-preview{
+    width:60px;height:60px;border-radius:50%;
+    background: var(--panel-light);
+    display:flex;align-items:center;justify-content:center;
+    font-size:1.5rem;font-weight:bold;
+    overflow:hidden;
+    border:2px solid rgba(255,255,255,0.1);
+    flex-shrink:0;
+  }
+  .pfp-preview img{ width:100%; height:100%; object-fit:cover; }
+  .file-btn{
+    border:1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    padding:9px 14px;
+    border-radius:10px;
+    font-size:0.85rem;
+    cursor:pointer;
+  }
+  .hidden-file-input{ display:none; }
+
+  /* ===== Feed ===== */
+  .feed-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:18px;
+  }
+  .feed-header h2{
+    font-family: var(--font-display);
+    font-size:1.3rem;
+    font-weight:800;
+  }
+  .feed-empty{
+    text-align:center;
+    color: var(--text-dim);
+    padding: 60px 20px;
+    font-size:0.9rem;
+  }
+
+  .post-card{ padding:0; overflow:hidden; }
+  .post-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding: 14px 16px;
+  }
+  .post-meta{ display:flex; flex-direction:column; }
+  .post-time{ font-size:0.72rem; color: var(--text-dim); }
+  .post-video{
+    width:100%;
+    max-height:480px;
+    background:#000;
+    display:block;
+  }
+  .post-body{ padding: 12px 16px; }
+  .post-title{ font-weight:800; font-size:1.05rem; margin-bottom:4px; }
+  .post-message{ color: var(--text); font-size:0.9rem; line-height:1.4; white-space:pre-wrap; }
+
+  .comments-section{
+    border-top:1px solid rgba(255,255,255,0.08);
+    padding: 12px 16px;
+  }
+  .comments-title{
+    font-size:0.75rem;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    color: var(--text-dim);
+    margin-bottom:10px;
+  }
+  .comment{
+    display:flex;
+    gap:8px;
+    margin-bottom:10px;
+    align-items:flex-start;
+  }
+  .comment .pfp-circle, .comment img.pfp-circle{
+    width:28px;height:28px;
+    font-size:0.75rem;
+    flex-shrink:0;
+  }
+  .comment-body{ flex:1; }
+  .comment-name{ font-size:0.78rem; font-weight:bold; }
+  .comment-text{ font-size:0.85rem; color: var(--text); }
+  .comment-empty{ font-size:0.8rem; color: var(--text-dim); font-style:italic; }
+
+  .comment-form{
+    display:flex;
+    gap:8px;
+    margin-top:10px;
+  }
+  .comment-form input{
+    flex:1;
+  }
+  .comment-form button{
+    width:auto;
+    margin:0;
+    padding: 11px 16px;
+  }
+
+  /* ===== Carrot Upload UI (special) ===== */
+  .carrot-upload{
+    border: 1px solid var(--orange);
+    background: linear-gradient(135deg, rgba(255,122,24,0.12), rgba(0,0,0,0.4));
+    position:relative;
+  }
+  .carrot-upload::before{
+    content: "🥕";
+    position:absolute;
+    top:-14px; left:16px;
+    font-size:1.6rem;
+    background: var(--black);
+    border-radius:50%;
+    padding:6px;
+    border: 1px solid var(--orange);
+  }
+  .carrot-upload h3{
+    font-family: var(--font-display);
+    margin-bottom:10px;
+    margin-left: 36px;
+    font-size:1rem;
+    color: var(--orange-light);
+  }
+  .upload-progress{
+    font-size:0.8rem;
+    color: var(--text-dim);
+    margin-top:8px;
+    min-height:1.2em;
+  }
+
+  /* ===== Floating action button (open upload) ===== */
+  .fab{
+    position:fixed;
+    bottom:24px;
+    right:24px;
+    width:56px;height:56px;
+    border-radius:50%;
+    background: linear-gradient(135deg, var(--orange), var(--accent));
+    border:none;
+    color:#1a0e00;
+    font-size:1.6rem;
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow: 0 8px 24px rgba(255,122,24,0.45);
+    z-index:5;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  @media (max-width: 480px){
+    .setup-card{ padding: 24px 18px; }
+    .post-video{ max-height: 280px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="carrotField"></div>
+
+<div class="app">
+
+  <!-- ============ TOP BAR (visible after login) ============ -->
+  <div class="topbar hidden" id="topbar">
+    <div class="brand"><span class="dot"></span>CarrotST</div>
+    <div class="topbar-right">
+      <div class="lang-toggle">
+        <button id="langEnBtn" data-lang="en">EN</button>
+        <button id="langPtBtn" data-lang="pt">PT</button>
+      </div>
+      <div class="user-chip" id="userChip">
+        <div class="pfp-circle" id="userPfp">?</div>
+        <span class="chip-name" id="userChipName"></span>
+      </div>
+      <button class="logout-btn" id="logoutBtn" data-i18n="logout">Log out</button>
+    </div>
+  </div>
+
+  <!-- ============ AUTH: STEP 1 - LOGIN / CREATE ACCOUNT ============ -->
+  <div class="setup-wrap" id="authScreen">
+    <div class="setup-card">
+      <h1 data-i18n="welcomeTitle">Welcome to CarrotST</h1>
+      <p class="subtitle" data-i18n="welcomeSub">Log in or create your account</p>
+
+      <label data-i18n="lblUsername">Username</label>
+      <input type="text" id="authUsername" autocomplete="username" />
+
+      <label data-i18n="lblPassword">Password</label>
+      <input type="password" id="authPassword" autocomplete="current-password" />
+
+      <button class="btn" id="loginBtn" data-i18n="btnLogin">Log in</button>
+      <button class="btn btn-secondary" id="createAccountBtn" data-i18n="btnCreateAccount">Create account</button>
+
+      <div class="error-msg" id="authError"></div>
+    </div>
+  </div>
+
+  <!-- ============ SETUP: STEP 2 - PROFILE (name + pfp) ============ -->
+  <div class="setup-wrap hidden" id="profileScreen">
+    <div class="setup-card">
+      <h1 data-i18n="profileTitle">Set up your profile</h1>
+      <p class="subtitle" data-i18n="profileSub">This is how others will see you</p>
+
+      <label data-i18n="lblDisplayName">Display name</label>
+      <input type="text" id="profileDisplayName" />
+
+      <label data-i18n="lblPfp">Profile picture (optional)</label>
+      <div class="pfp-picker">
+        <div class="pfp-preview" id="pfpPreview">?</div>
+        <button type="button" class="file-btn" id="pfpPickBtn" data-i18n="btnChooseImage">Choose image</button>
+        <input type="file" accept="image/*" id="pfpFileInput" class="hidden-file-input" />
+      </div>
+      <div class="upload-progress" id="pfpProgress"></div>
+
+      <button class="btn" id="profileNextBtn" data-i18n="btnContinue">Continue</button>
+      <div class="error-msg" id="profileError"></div>
+    </div>
+  </div>
+
+  <!-- ============ SETUP: STEP 3 - LANGUAGE ============ -->
+  <div class="setup-wrap hidden" id="langScreen">
+    <div class="setup-card">
+      <h1 data-i18n="langTitle">Choose your language</h1>
+      <p class="subtitle" data-i18n="langSub">You can change this anytime in the top corner</p>
+
+      <div class="lang-choice">
+        <div class="lang-card selected" id="langCardEn" data-lang="en">
+          <span class="flag">🇬🇧</span>
+          <div>English</div>
+        </div>
+        <div class="lang-card" id="langCardPt" data-lang="pt">
+          <span class="flag">🇧🇷</span>
+          <div>Português</div>
+        </div>
+      </div>
+
+      <button class="btn" id="finishSetupBtn" data-i18n="btnFinish">Finish setup</button>
+    </div>
+  </div>
+
+  <!-- ============ MAIN FEED ============ -->
+  <div class="container hidden" id="feedScreen">
+
+    <!-- Carrot-only upload card -->
+    <div class="card carrot-upload hidden" id="uploadCard">
+      <h3 data-i18n="uploadTitle">Post a new video</h3>
+
+      <label data-i18n="lblVideoTitle">Title</label>
+      <input type="text" id="videoTitleInput" />
+
+      <label data-i18n="lblVideoMsg">Message</label>
+      <textarea id="videoMsgInput"></textarea>
+
+      <label data-i18n="lblVideoFile">Video file</label>
+      <div class="pfp-picker" style="margin-top:8px;">
+        <button type="button" class="file-btn" id="videoPickBtn" data-i18n="btnChooseVideo">Choose video</button>
+        <input type="file" accept="video/*" id="videoFileInput" class="hidden-file-input" />
+        <span id="videoFileName" style="font-size:0.8rem;color:var(--text-dim);"></span>
+      </div>
+
+      <div class="upload-progress" id="videoUploadProgress"></div>
+
+      <button class="btn" id="postVideoBtn" data-i18n="btnPost">Post</button>
+    </div>
+
+    <div class="feed-header">
+      <h2 data-i18n="feedTitle">Feed</h2>
+    </div>
+
+    <div id="postsContainer"></div>
+    <div class="feed-empty hidden" id="feedEmpty" data-i18n="feedEmptyMsg">No videos yet. Carrot hasn't posted anything.</div>
+  </div>
+
+</div>
+
+<!-- ============ FIREBASE ============ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+import {
+  getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc,
+  query, orderBy, onSnapshot, serverTimestamp, where
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAPkQUQvZXbm62gK8xjfhHmD9Dlf3Scu5o",
+  authDomain: "carrotstudio-c75fc.firebaseapp.com",
+  projectId: "carrotstudio-c75fc",
+  storageBucket: "carrotstudio-c75fc.firebasestorage.app",
+  messagingSenderId: "501983566679",
+  appId: "1:501983566679:web:72e3934623f5ee8ee5bc12",
+  measurementId: "G-E2SLVDN1NF"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* =========================================================
+   I18N
+========================================================= */
+const I18N = {
+  en: {
+    logout: "Log out",
+    welcomeTitle: "Welcome to CarrotST",
+    welcomeSub: "Log in or create your account",
+    lblUsername: "Username",
+    lblPassword: "Password",
+    btnLogin: "Log in",
+    btnCreateAccount: "Create account",
+    profileTitle: "Set up your profile",
+    profileSub: "This is how others will see you",
+    lblDisplayName: "Display name",
+    lblPfp: "Profile picture (optional)",
+    btnChooseImage: "Choose image",
+    btnContinue: "Continue",
+    langTitle: "Choose your language",
+    langSub: "You can change this anytime in the top corner",
+    btnFinish: "Finish setup",
+    uploadTitle: "Post a new video",
+    lblVideoTitle: "Title",
+    lblVideoMsg: "Message",
+    lblVideoFile: "Video file",
+    btnChooseVideo: "Choose video",
+    btnPost: "Post",
+    feedTitle: "Feed",
+    feedEmptyMsg: "No videos yet. Carrot hasn't posted anything.",
+    commentsLabel: "Comments",
+    noComments: "No comments yet. Be the first.",
+    commentPlaceholder: "Write a comment...",
+    commentSend: "Send",
+    errUserExists: "That username is already taken.",
+    errInvalidLogin: "Wrong username or password.",
+    errUserNotFound: "Account not found.",
+    errEmptyFields: "Please fill in all fields.",
+    errPfpUpload: "Could not upload image. Try again.",
+    errVideoUpload: "Could not upload video. Try again.",
+    uploadingPfp: "Uploading image...",
+    uploadingVideo: "Uploading video...",
+    uploadDone: "Done!",
+    pickVideoFirst: "Choose a video file first.",
+    fillTitleAndVideo: "Add a title and a video before posting.",
+  },
+  pt: {
+    logout: "Sair",
+    welcomeTitle: "Bem-vindo ao CarrotST",
+    welcomeSub: "Entre ou crie sua conta",
+    lblUsername: "Nome de usuário",
+    lblPassword: "Senha",
+    btnLogin: "Entrar",
+    btnCreateAccount: "Criar conta",
+    profileTitle: "Configure seu perfil",
+    profileSub: "É assim que os outros vão te ver",
+    lblDisplayName: "Nome de exibição",
+    lblPfp: "Foto de perfil (opcional)",
+    btnChooseImage: "Escolher imagem",
+    btnContinue: "Continuar",
+    langTitle: "Escolha seu idioma",
+    langSub: "Você pode mudar isso depois no canto superior",
+    btnFinish: "Concluir configuração",
+    uploadTitle: "Postar novo vídeo",
+    lblVideoTitle: "Título",
+    lblVideoMsg: "Mensagem",
+    lblVideoFile: "Arquivo de vídeo",
+    btnChooseVideo: "Escolher vídeo",
+    btnPost: "Postar",
+    feedTitle: "Feed",
+    feedEmptyMsg: "Nenhum vídeo ainda. Carrot não postou nada.",
+    commentsLabel: "Comentários",
+    noComments: "Nenhum comentário ainda. Seja o primeiro.",
+    commentPlaceholder: "Escreva um comentário...",
+    commentSend: "Enviar",
+    errUserExists: "Esse nome de usuário já está em uso.",
+    errInvalidLogin: "Usuário ou senha incorretos.",
+    errUserNotFound: "Conta não encontrada.",
+    errEmptyFields: "Preencha todos os campos.",
+    errPfpUpload: "Não foi possível enviar a imagem. Tente novamente.",
+    errVideoUpload: "Não foi possível enviar o vídeo. Tente novamente.",
+    uploadingPfp: "Enviando imagem...",
+    uploadingVideo: "Enviando vídeo...",
+    uploadDone: "Concluído!",
+    pickVideoFirst: "Escolha um arquivo de vídeo primeiro.",
+    fillTitleAndVideo: "Adicione um título e um vídeo antes de postar.",
+  }
+};
+
+let currentLang = localStorage.getItem('carrotst_lang') || 'en';
+
+function applyI18n(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key = el.getAttribute('data-i18n');
+    if (I18N[currentLang][key]) el.textContent = I18N[currentLang][key];
+  });
+  document.getElementById('langEnBtn').classList.toggle('active', currentLang==='en');
+  document.getElementById('langPtBtn').classList.toggle('active', currentLang==='pt');
+  // re-render dynamic bits that need translation
+  if (typeof renderPosts === 'function' && currentPosts) renderPosts(currentPosts);
+}
+
+document.getElementById('langEnBtn').addEventListener('click', ()=> setLang('en'));
+document.getElementById('langPtBtn').addEventListener('click', ()=> setLang('pt'));
+function setLang(lang){
+  currentLang = lang;
+  localStorage.setItem('carrotst_lang', lang);
+  applyI18n();
+}
+
+/* language selection screen (setup step 3) */
+document.getElementById('langCardEn').addEventListener('click', ()=> selectSetupLang('en'));
+document.getElementById('langCardPt').addEventListener('click', ()=> selectSetupLang('pt'));
+let setupLangChoice = 'en';
+function selectSetupLang(lang){
+  setupLangChoice = lang;
+  document.getElementById('langCardEn').classList.toggle('selected', lang==='en');
+  document.getElementById('langCardPt').classList.toggle('selected', lang==='pt');
+}
+
+/* =========================================================
+   FALLING CARROTS BACKGROUND
+========================================================= */
+function spawnCarrots(){
+  const field = document.getElementById('carrotField');
+  const count = window.innerWidth < 600 ? 10 : 18;
+  for(let i=0;i<count;i++){
+    const c = document.createElement('div');
+    c.className = 'carrot';
+    c.textContent = '🥕';
+    c.style.left = Math.random()*100 + 'vw';
+    const duration = 12 + Math.random()*18;
+    c.style.animationDuration = duration + 's';
+    c.style.animationDelay = (Math.random()*-duration) + 's';
+    c.style.fontSize = (18 + Math.random()*22) + 'px';
+    c.style.opacity = (0.25 + Math.random()*0.35).toFixed(2);
+    field.appendChild(c);
+  }
+}
+spawnCarrots();
+
+/* =========================================================
+   AUTH / CUSTOM ACCOUNTS (Firestore-based)
+========================================================= */
+const USERS_COL = 'users';
+const POSTS_COL = 'posts';
+
+const CARROT_USERNAME = 'carrot'; // reserved special account
+
+// Simple hash so passwords aren't stored fully in plaintext (not real security)
+async function hashPassword(pw){
+  const enc = new TextEncoder().encode(pw + '::carrotst_salt');
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function getSession(){
+  try{ return JSON.parse(localStorage.getItem('carrotst_session')); }catch(e){ return null; }
+}
+function setSession(data){
+  localStorage.setItem('carrotst_session', JSON.stringify(data));
+}
+function clearSession(){
+  localStorage.removeItem('carrotst_session');
+}
+
+let currentUser = null; // {username, displayName, pfpUrl, isCarrot, lang}
+let currentPosts = [];
+
+/* ---------- screens ---------- */
+const screens = {
+  auth: document.getElementById('authScreen'),
+  profile: document.getElementById('profileScreen'),
+  lang: document.getElementById('langScreen'),
+  feed: document.getElementById('feedScreen'),
+};
+const topbar = document.getElementById('topbar');
+
+function showScreen(name){
+  Object.values(screens).forEach(s=>s.classList.add('hidden'));
+  topbar.classList.toggle('hidden', name === 'auth');
+  if (screens[name]) screens[name].classList.remove('hidden');
+}
+
+/* ---------- login / create account ---------- */
+const authUsername = document.getElementById('authUsername');
+const authPassword = document.getElementById('authPassword');
+const authError = document.getElementById('authError');
+
+document.getElementById('loginBtn').addEventListener('click', async ()=>{
+  authError.textContent = '';
+  const uname = authUsername.value.trim().toLowerCase();
+  const pw = authPassword.value;
+  if (!uname || !pw){ authError.textContent = I18N[currentLang].errEmptyFields; return; }
+
+  try{
+    const userRef = doc(db, USERS_COL, uname);
+    const snap = await getDoc(userRef);
+    if (!snap.exists()){
+      authError.textContent = I18N[currentLang].errUserNotFound;
+      return;
+    }
+    const data = snap.data();
+    const hashed = await hashPassword(pw);
+    if (data.passwordHash !== hashed){
+      authError.textContent = I18N[currentLang].errInvalidLogin;
+      return;
+    }
+    // success
+    setSession({ username: uname });
+    if (data.lang) { currentLang = data.lang; localStorage.setItem('carrotst_lang', data.lang); }
+    await loadUserAndContinue(uname, data);
+  }catch(e){
+    console.error(e);
+    authError.textContent = e.message;
+  }
+});
+
+document.getElementById('createAccountBtn').addEventListener('click', async ()=>{
+  authError.textContent = '';
+  const uname = authUsername.value.trim().toLowerCase();
+  const pw = authPassword.value;
+  if (!uname || !pw){ authError.textContent = I18N[currentLang].errEmptyFields; return; }
+  if (!/^[a-z0-9_]{3,20}$/.test(uname)){
+    authError.textContent = 'Username: 3-20 chars, letters/numbers/underscore only.';
+    return;
+  }
+
+  try{
+    const userRef = doc(db, USERS_COL, uname);
+    const snap = await getDoc(userRef);
+    if (snap.exists()){
+      authError.textContent = I18N[currentLang].errUserExists;
+      return;
+    }
+    const hashed = await hashPassword(pw);
+    const newUserData = {
+      username: uname,
+      passwordHash: hashed,
+      displayName: uname,
+      pfpUrl: '',
+      isCarrot: uname === CARROT_USERNAME,
+      lang: currentLang,
+      profileComplete: false,
+      createdAt: serverTimestamp(),
+    };
+    await setDoc(userRef, newUserData);
+    setSession({ username: uname });
+    await loadUserAndContinue(uname, newUserData);
+  }catch(e){
+    console.error(e);
+    authError.textContent = e.message;
+  }
+});
+
+async function loadUserAndContinue(uname, data){
+  currentUser = {
+    username: uname,
+    displayName: data.displayName || uname,
+    pfpUrl: data.pfpUrl || '',
+    isCarrot: !!data.isCarrot,
+    lang: data.lang || 'en',
+  };
+
+  if (!data.profileComplete){
+    showScreen('profile');
+    document.getElementById('profileDisplayName').value = currentUser.displayName === uname ? '' : currentUser.displayName;
+    return;
+  }
+  enterApp();
+}
+
+/* ---------- profile setup (step 2) ---------- */
+const pfpFileInput = document.getElementById('pfpFileInput');
+const pfpPreview = document.getElementById('pfpPreview');
+const pfpProgress = document.getElementById('pfpProgress');
+let pendingPfpUrl = '';
+
+document.getElementById('pfpPickBtn').addEventListener('click', ()=> pfpFileInput.click());
+
+pfpFileInput.addEventListener('change', async ()=>{
+  const file = pfpFileInput.files[0];
+  if (!file) return;
+  pfpProgress.textContent = I18N[currentLang].uploadingPfp;
+  try{
+    const url = await uploadToCloudinary(file, 'image');
+    pendingPfpUrl = url;
+    pfpPreview.innerHTML = `<img src="${url}" alt="pfp">`;
+    pfpProgress.textContent = I18N[currentLang].uploadDone;
+  }catch(e){
+    console.error(e);
+    pfpProgress.textContent = I18N[currentLang].errPfpUpload;
+  }
+});
+
+document.getElementById('profileNextBtn').addEventListener('click', async ()=>{
+  const profileError = document.getElementById('profileError');
+  profileError.textContent = '';
+  const displayName = document.getElementById('profileDisplayName').value.trim();
+  if (!displayName){ profileError.textContent = I18N[currentLang].errEmptyFields; return; }
+
+  currentUser.displayName = displayName;
+  if (pendingPfpUrl) currentUser.pfpUrl = pendingPfpUrl;
+
+  try{
+    const userRef = doc(db, USERS_COL, currentUser.username);
+    await setDoc(userRef, {
+      displayName: currentUser.displayName,
+      pfpUrl: currentUser.pfpUrl || '',
+    }, { merge: true });
+  }catch(e){
+    console.error(e);
+    profileError.textContent = e.message;
+    return;
+  }
+
+  showScreen('lang');
+});
+
+/* ---------- language setup (step 3) ---------- */
+document.getElementById('finishSetupBtn').addEventListener('click', async ()=>{
+  currentLang = setupLangChoice;
+  localStorage.setItem('carrotst_lang', currentLang);
+  currentUser.lang = currentLang;
+
+  try{
+    const userRef = doc(db, USERS_COL, currentUser.username);
+    await setDoc(userRef, {
+      lang: currentLang,
+      profileComplete: true,
+    }, { merge: true });
+  }catch(e){
+    console.error(e);
+  }
+
+  applyI18n();
+  enterApp();
+});
+
+/* ---------- logout ---------- */
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+  clearSession();
+  currentUser = null;
+  authUsername.value = '';
+  authPassword.value = '';
+  showScreen('auth');
+});
+
+/* =========================================================
+   ENTER APP / TOP BAR
+========================================================= */
+function renderUserChip(){
+  const pfpEl = document.getElementById('userPfp');
+  const nameEl = document.getElementById('userChipName');
+
+  if (currentUser.pfpUrl){
+    pfpEl.outerHTML = `<img id="userPfp" src="${currentUser.pfpUrl}" alt="">`;
+  } else {
+    pfpEl.textContent = (currentUser.displayName || '?').charAt(0).toUpperCase();
+  }
+
+  if (currentUser.isCarrot){
+    nameEl.innerHTML = `<span class="verified-name">${escapeHtml(currentUser.displayName)}${verifiedBadgeSvg()}</span>`;
+  } else {
+    nameEl.textContent = currentUser.displayName;
+  }
+}
+
+function enterApp(){
+  applyI18n();
+  renderUserChip();
+  document.getElementById('uploadCard').classList.toggle('hidden', !currentUser.isCarrot);
+  showScreen('feed');
+  listenToPosts();
+}
+
+/* =========================================================
+   VERIFIED BADGE SVG
+========================================================= */
+function verifiedBadgeSvg(){
+  return `<span class="verified-badge" title="Verified">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2L14.5 4.5L18 4L18.5 7.5L22 9L20.5 12L22 15L18.5 16.5L18 20L14.5 19.5L12 22L9.5 19.5L6 20L5.5 16.5L2 15L3.5 12L2 9L5.5 7.5L6 4L9.5 4.5L12 2Z" fill="#ff7a18"/>
+      <path d="M8 12.5L10.5 15L16 9" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </span>`;
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* =========================================================
+   CLOUDINARY UPLOAD HELPER (unsigned)
+========================================================= */
+const CLOUDINARY_CLOUD_NAME = 'dk544utzd';
+const CLOUDINARY_UPLOAD_PRESET = 'carrotst_uploads';
+
+async function uploadToCloudinary(file, resourceType){
+  // resourceType: 'video' or 'image' — /auto/upload is not a valid CORS-enabled endpoint
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`;
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+  const res = await fetch(url, {
+    method: 'POST',
+    body: formData
+  });
+
+  if (!res.ok){
+    const errText = await res.text();
+    throw new Error('Cloudinary upload failed: ' + errText);
+  }
+
+  const data = await res.json();
+  if (!data.secure_url) throw new Error('Cloudinary returned no URL');
+  return data.secure_url;
+}
+
+/* =========================================================
+   VIDEO UPLOAD (Carrot only)
+========================================================= */
+const videoFileInput = document.getElementById('videoFileInput');
+const videoFileName = document.getElementById('videoFileName');
+let pendingVideoFile = null;
+
+document.getElementById('videoPickBtn').addEventListener('click', ()=> videoFileInput.click());
+videoFileInput.addEventListener('change', ()=>{
+  pendingVideoFile = videoFileInput.files[0] || null;
+  videoFileName.textContent = pendingVideoFile ? pendingVideoFile.name : '';
+});
+
+document.getElementById('postVideoBtn').addEventListener('click', async ()=>{
+  const progressEl = document.getElementById('videoUploadProgress');
+  const title = document.getElementById('videoTitleInput').value.trim();
+  const message = document.getElementById('videoMsgInput').value.trim();
+
+  if (!pendingVideoFile){
+    progressEl.textContent = I18N[currentLang].pickVideoFirst;
+    return;
+  }
+  if (!title){
+    progressEl.textContent = I18N[currentLang].fillTitleAndVideo;
+    return;
+  }
+
+  const postBtn = document.getElementById('postVideoBtn');
+  postBtn.disabled = true;
+  progressEl.textContent = I18N[currentLang].uploadingVideo;
+
+  try{
+    const videoUrl = await uploadToCloudinary(pendingVideoFile, 'video');
+    await addDoc(collection(db, POSTS_COL), {
+      title,
+      message,
+      videoUrl,
+      authorUsername: currentUser.username,
+      authorName: currentUser.displayName,
+      authorPfp: currentUser.pfpUrl || '',
+      createdAt: serverTimestamp(),
+    });
+    progressEl.textContent = I18N[currentLang].uploadDone;
+    document.getElementById('videoTitleInput').value = '';
+    document.getElementById('videoMsgInput').value = '';
+    videoFileInput.value = '';
+    videoFileName.textContent = '';
+    pendingVideoFile = null;
+    setTimeout(()=> progressEl.textContent = '', 2000);
+  }catch(e){
+    console.error(e);
+    progressEl.textContent = I18N[currentLang].errVideoUpload;
+  }finally{
+    postBtn.disabled = false;
+  }
+});
+
+/* =========================================================
+   FEED RENDERING + REALTIME LISTENERS
+========================================================= */
+const postsContainer = document.getElementById('postsContainer');
+const feedEmpty = document.getElementById('feedEmpty');
+
+function listenToPosts(){
+  const q = query(collection(db, POSTS_COL), orderBy('createdAt', 'desc'));
+  onSnapshot(q, (snap)=>{
+    currentPosts = [];
+    snap.forEach(docSnap=>{
+      currentPosts.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    renderPosts(currentPosts);
+  }, (err)=>{
+    console.error('Posts listener error:', err);
+  });
+}
+
+function formatTime(ts){
+  if (!ts || !ts.toDate) return '';
+  const d = ts.toDate();
+  return d.toLocaleString(currentLang === 'pt' ? 'pt-BR' : 'en-US', {
+    day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'
+  });
+}
+
+function renderPosts(posts){
+  if (!posts.length){
+    postsContainer.innerHTML = '';
+    feedEmpty.classList.remove('hidden');
+    return;
+  }
+  feedEmpty.classList.add('hidden');
+
+  postsContainer.innerHTML = posts.map(p=>{
+    const authorNameHtml = p.authorUsername === CARROT_USERNAME
+      ? `<span class="verified-name">${escapeHtml(p.authorName)}${verifiedBadgeSvg()}</span>`
+      : escapeHtml(p.authorName);
+
+    const pfpHtml = p.authorPfp
+      ? `<img src="${p.authorPfp}" class="pfp-circle" alt="">`
+      : `<div class="pfp-circle">${escapeHtml((p.authorName||'?').charAt(0).toUpperCase())}</div>`;
+
+    return `
+    <div class="card post-card" data-post-id="${p.id}">
+      <div class="post-head">
+        ${pfpHtml}
+        <div class="post-meta">
+          <div>${authorNameHtml}</div>
+          <div class="post-time">${formatTime(p.createdAt)}</div>
+        </div>
+      </div>
+      <video class="post-video" src="${p.videoUrl}" controls preload="metadata"></video>
+      <div class="post-body">
+        <div class="post-title">${escapeHtml(p.title)}</div>
+        ${p.message ? `<div class="post-message">${escapeHtml(p.message)}</div>` : ''}
+      </div>
+      <div class="comments-section">
+        <div class="comments-title" data-i18n-inline="commentsLabel">${I18N[currentLang].commentsLabel}</div>
+        <div class="comments-list" id="comments-${p.id}">
+          <div class="comment-empty">${I18N[currentLang].noComments}</div>
+        </div>
+        <div class="comment-form">
+          <input type="text" placeholder="${I18N[currentLang].commentPlaceholder}" id="commentInput-${p.id}" />
+          <button class="btn" data-post-id="${p.id}" data-action="send-comment">${I18N[currentLang].commentSend}</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // attach comment listeners + send handlers
+  posts.forEach(p=> listenToComments(p.id));
+
+  postsContainer.querySelectorAll('[data-action="send-comment"]').forEach(btn=>{
+    btn.addEventListener('click', ()=> sendComment(btn.getAttribute('data-post-id')));
+  });
+  posts.forEach(p=>{
+    const input = document.getElementById(`commentInput-${p.id}`);
+    if (input){
+      input.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter') sendComment(p.id);
+      });
+    }
+  });
+}
+
+const commentListeners = {};
+function listenToComments(postId){
+  if (commentListeners[postId]) return; // already listening
+  const q = query(collection(db, POSTS_COL, postId, 'comments'), orderBy('createdAt', 'asc'));
+  commentListeners[postId] = onSnapshot(q, (snap)=>{
+    const list = document.getElementById(`comments-${postId}`);
+    if (!list) return;
+    if (snap.empty){
+      list.innerHTML = `<div class="comment-empty">${I18N[currentLang].noComments}</div>`;
+      return;
+    }
+    list.innerHTML = snap.docs.map(d=>{
+      const c = d.data();
+      const nameHtml = c.authorUsername === CARROT_USERNAME
+        ? `<span class="verified-name" style="font-size:0.78rem;">${escapeHtml(c.authorName)}${verifiedBadgeSvg()}</span>`
+        : `<span class="comment-name">${escapeHtml(c.authorName)}</span>`;
+
+      const pfpHtml = c.authorPfp
+        ? `<img src="${c.authorPfp}" class="pfp-circle" alt="">`
+        : `<div class="pfp-circle">${escapeHtml((c.authorName||'?').charAt(0).toUpperCase())}</div>`;
+
+      return `
+      <div class="comment">
+        ${pfpHtml}
+        <div class="comment-body">
+          <div class="comment-name">${nameHtml}</div>
+          <div class="comment-text">${escapeHtml(c.text)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }, (err)=> console.error('Comment listener error:', err));
+}
+
+async function sendComment(postId){
+  const input = document.getElementById(`commentInput-${postId}`);
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  try{
+    await addDoc(collection(db, POSTS_COL, postId, 'comments'), {
+      text,
+      authorUsername: currentUser.username,
+      authorName: currentUser.displayName,
+      authorPfp: currentUser.pfpUrl || '',
+      createdAt: serverTimestamp(),
+    });
+    input.value = '';
+  }catch(e){
+    console.error(e);
+  }
+}
+
+/* =========================================================
+   INIT / SESSION RESTORE
+========================================================= */
+async function init(){
+  applyI18n();
+  const session = getSession();
+  if (!session || !session.username){
+    showScreen('auth');
+    return;
+  }
+  try{
+    const userRef = doc(db, USERS_COL, session.username);
+    const snap = await getDoc(userRef);
+    if (!snap.exists()){
+      clearSession();
+      showScreen('auth');
+      return;
+    }
+    const data = snap.data();
+    if (data.lang){ currentLang = data.lang; localStorage.setItem('carrotst_lang', data.lang); }
+    await loadUserAndContinue(session.username, data);
+  }catch(e){
+    console.error(e);
+    showScreen('auth');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
